@@ -1,1 +1,1 @@
-# net.off-stage.remotecontroller
+# io.offstage.player
