@@ -5,9 +5,9 @@ import ReactDOM from 'react-dom';
 
 import s from './../sass/index.sass';
 
-import HelloForm from './Components/HelloForm';
+import MediaPlayer from './Components/MediaPlayer';
 
 ReactDOM.render(
-  <HelloForm/>,
+  <MediaPlayer api-key="testing" collection="testing"/>,
   document.getElementById('index')
 );
