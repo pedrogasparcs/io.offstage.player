@@ -41,7 +41,6 @@ class MediaPlayer extends Component {
         }
     }
 
-
     render () {
         return (
             <div>
