@@ -23,5 +23,13 @@ export const TimespanCriteria = {
 export default {
     Order,
     TypeFilter,
-    TimespanCriteria
+    TimespanCriteria,
+    hasPropertyWithValue: (e, value) => {
+        for(let prop in e) {
+            if(e[prop] == value) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

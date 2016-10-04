@@ -41,8 +41,11 @@ function getEntrySources(sources) {
 
 module.exports = {
   entry: {
-    index: getEntrySources([
-      './src/js/index.js'
+    standard: getEntrySources([
+      './src/js/media-viewer.js',
+    ]),
+    admin: getEntrySources([
+      './src/js/media-viewer-admin.js',
     ])
     /*
     **** add one entry for each js file you want as a separate resource ****
@@ -79,7 +82,7 @@ module.exports = {
       title: 'Custom template',
       filename: 'index.html',
       template: path.resolve(__dirname, 'src/ejs/index.ejs'), // Load a custom template (ejs by default see the html-webpack-plugin -> FAQ for details)
-      chunks: ['index'],
+      chunks: ['standard'],
       environment: process.env.NODE_ENV !== "production"?"dev":"",
       files: {
         "css": process.env.NODE_ENV === 'production'? [ "style.css" ] : []

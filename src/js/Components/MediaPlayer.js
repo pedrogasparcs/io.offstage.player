@@ -6,7 +6,7 @@
 
 import React, {Component} from 'react';
 import {Order, TypeFilter, TimespanCriteria} from '../Enums';
-import {sprintf} from '../Utilities/StringUtilities'
+import JsApi, {JsApiConf, JsApiOptions} from '../Services/JsApi';
 
 /**
  * Private Methods
@@ -19,26 +19,27 @@ import {sprintf} from '../Utilities/StringUtilities'
  * @param timespanCriteria
  * @returns {*}
  */
-function whichBaseRoute (timespanCriteria) {
-    switch (timespanCriteria) {
-        case TimespanCriteria.CREATED:
-            return "/media/created/@@0/@@1/@@2/@@3/@@4/@@5";
-        case TimespanCriteria.ENGAGED:
-            return "/media/@@0/@@1/@@2/@@3/@@4/@@5";
-    }
-    return "";
-}
 
 class MediaPlayer extends Component {
     constructor(props) {
         super(props);
-        let sort = this.props.order.split("|");
-        this.state = {
-            "base-route": whichBaseRoute(this.props["timespan-criteria"]),
-            "timespan": this.props.timespan.split("|"),
-            "sort-criteria": sort[0],
-            "sort-direction": sort[1],
-        }
+        this.api = new JsApi(
+            new JsApiConf (
+                this.props["host"],
+                this.props["api-key"],
+                this.props["channel"]
+            ),
+            new JsApiOptions (
+                this.props["timespan-criteria"],
+                this.props["timespan"],
+                this.props["type-filter"],
+                this.props["order"],
+            )
+        );
+    }
+
+    componentDidMount () {
+        this.api.get ();
     }
 
     render () {
@@ -47,7 +48,6 @@ class MediaPlayer extends Component {
                 {this.props.order}<br/>
                 {this.props["type-filter"]}<br/>
                 {this.props["timespan-criteria"]}<br/>
-                {sprintf(this.state["base-route"], "123", 3321)}
             </div>
         )
     }
@@ -55,17 +55,17 @@ class MediaPlayer extends Component {
 MediaPlayer.propTypes = {
     "host": React.PropTypes.string,
     "api-key": React.PropTypes.string.isRequired,
-    "collection": React.PropTypes.string.isRequired,
-    "order": React.PropTypes.string,
-    "timespan": React.PropTypes.string,
-    "timespan-criteria": React.PropTypes.string,
-    "type-filter": React.PropTypes.string,
-    "continuous-scroll": React.PropTypes.bool,
-    "load-more-id": React.PropTypes.string,
-    "loading-id": React.PropTypes.string,
-    "responsive-gridsizes": React.PropTypes.arrayOf(React.PropTypes.number),
-    "top-slideshow": React.PropTypes.bool,
-    "debug": React.PropTypes.bool
+    "channel": React.PropTypes.string.isRequired,
+    "order": React.PropTypes.string, // Enum Order
+    "timespan": React.PropTypes.string, // send timespan to api for time-filtered results
+    "timespan-criteria": React.PropTypes.string, // Enum TimespanCriteria: send criteria to api for time-filtered results (CREATED vs ENGAGED during indicated timespan)
+    "type-filter": React.PropTypes.string, // Enum TypeFilter: send filter to api for type-filtered results
+    "continuous-scroll": React.PropTypes.bool, // should the player take care of automatic fetch for continuous scrolling
+    "load-more-id": React.PropTypes.string, // get html element to behave as component
+    "loading-id": React.PropTypes.string, // get html element to behave as component
+    "responsive-gridsizes": React.PropTypes.arrayOf(React.PropTypes.number), // determines default css behaviour
+    "top-slideshow": React.PropTypes.bool, // toggles the appearance of a top slider
+    "debug": React.PropTypes.bool // augments console verbosity
 }
 
 MediaPlayer.defaultProps = {
