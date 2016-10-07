@@ -4,7 +4,15 @@
 
 'use strict'
 
-import Enum, {TimespanCriteria, TypeFilter, Order} from '../Enums';
+import CustomTypes, {
+    TimespanCriteria,
+    TypeFilter,
+    Order,
+    Timespan,
+    Host,
+    ApiKey,
+    ApiChannel
+} from '../CustomTypes';
 import {sprintf} from '../Utilities/StringUtilities';
 
 
@@ -18,7 +26,7 @@ function whichBaseRoute (timespanCriteria) {
     return "";
 }
 
-function apiGet (config, options) {
+const apiGet = (config, options) => {
     const base = whichBaseRoute(options.timespanCriteria);
     const timeParts = options.timespan.split(",");
     const start = timeParts[0];
@@ -37,48 +45,53 @@ function apiGet (config, options) {
         if (isNaN(_offset) || _offset < 0) {
             throw new Error ("Wrong offset");
         }
-        const url = sprintf(base, start, end, config.channel)
-        fetch(url, fetchConfig)
-            .then(function(response) {
-                console.log (response);
-                return response.blob();
+        const url = sprintf(config.host + base, start, end, config.channel, options.order, _offset, options.typeFilter);
+        return fetch(url, fetchConfig)
+            .then( response => {
+                return response.json().then(json => {
+                    if (json.list && json.list.length) {
+                        return json;
+                    }
+                    return null;
+                });
             })
-            .then(function(myBlob) {
-                /*
-                var objectURL = URL.createObjectURL(myBlob);
-                myImage.src = objectURL;
-                */
-                console.log (myBlob);
-            });
     };
     return get;
+};
 
-}
+const configProps = [
+    {key: "host", type: Host},
+    {key: "key", type: ApiKey},
+    {key: "channel", type: ApiChannel}
+];
 
-class JsApi {
-    constructor (config, options) {
-        this.config = config;
-        this.options = options;
-        this.get = apiGet (this.config, this.options);
-    }
+const configOptions = [
+    {key: "timespanCriteria", type: TimespanCriteria},
+    {key: "timespan", type: Timespan},
+    {key: "typeFilter", type: TypeFilter},
+    {key: "order", type: Order},
+];
 
-    setTimespanCriteria (criteria) {
-        // validate input
-        if (!Enum.hasPropertyWithValue(TimespanCriteria, criteria)) {
-            throw new Error ("Wrong Timespan Criteria: not available");
+const getOption = (coll, key) => {
+    for(let option in coll) {
+        if (coll[option].key == key) {
+            return coll[option];
         }
-        // update option
-        this.options = Object.assign(this.options, {timespanCriteria: criteria});
-        // update options-dependant
-        this.get = apiGet (this.config, this.options);
-        // permit chaining
-        return this;
     }
-}
+    return null;
+};
 
-export default JsApi;
-
+// setup helpers
 export const JsApiConf = (apiHost, apiKey, apiChannel) => {
+    if (!Host.validate(apiHost)) {
+        throw new Error ("Wrong ApiHost: invalid");
+    }
+    if (!ApiKey.validate(apiKey)) {
+        throw new Error ("Wrong ApiKey: invalid");
+    }
+    if (!ApiChannel.validate(apiChannel)) {
+        throw new Error ("Wrong ApiChannel: invalid");
+    }
     return {
         host: apiHost,
         key: apiKey,
@@ -87,13 +100,16 @@ export const JsApiConf = (apiHost, apiKey, apiChannel) => {
 }
 
 export const JsApiOptions = (timespanCriteria, timespan, typeFilter, order) => {
-    if (!Enum.hasPropertyWithValue(TimespanCriteria, timespanCriteria)) {
+    if (!TimespanCriteria.validate(timespanCriteria)) {
         throw new Error ("Wrong TimespanCriteria: not available");
     }
-    if (!Enum.hasPropertyWithValue(TypeFilter, typeFilter)) {
+    if (!Timespan.validate(timespan)) {
+        throw new Error ("Wrong Timespan: invalid format");
+    }
+    if (!TypeFilter.validate(typeFilter)) {
         throw new Error ("Wrong TypeFilter: not available");
     }
-    if (!Enum.hasPropertyWithValue(Order, order)) {
+    if (!Order.validate(order)) {
         throw new Error ("Wrong Order: not available");
     }
     return {
@@ -103,3 +119,54 @@ export const JsApiOptions = (timespanCriteria, timespan, typeFilter, order) => {
         order: order
     };
 }
+
+class JsApi {
+    constructor (config, options) {
+        this.config = config;
+        this.options = options;
+        this.get = apiGet (this.config, this.options);
+    }
+
+    setOption (key, criteria) {
+        // validate input
+        const option = getOption (configOptions, key);
+        if(!option) {
+            throw new Error ("Option not available");
+        }
+        if (!option.type.validate(criteria)) {
+            throw new Error ("Wrong " + option.key + ": invalid criteria for option, criteria given: \"" + criteria + "\"");
+        }
+        // update option at options collection
+        let tempOptions = {};
+        tempOptions[option.key] = criteria;
+        this.options = Object.assign(this.options, tempOptions);
+        this.renewMethods();
+        // permit chaining
+        return this;
+    }
+
+    setConfig (key, criteria) {
+        // validate input
+        const option = getOption (configProps, key);
+        if(!option) {
+            throw new Error ("Config not available");
+        }
+        if (!option.type.validate(criteria)) {
+            throw new Error ("Wrong " + option.key + ": invalid criteria for config, criteria given: \"" + criteria + "\"");
+        }
+        // update option at options collection
+        let tempOptions = {};
+        tempOptions[option.key] = criteria;
+        this.config = Object.assign(this.config, tempOptions);
+        this.renewMethods();
+        // enable chaining
+        return this;
+    }
+
+    renewMethods () {
+        // update options-dependant methods
+        this.get = apiGet (this.config, this.options);
+    }
+}
+
+export default JsApi;

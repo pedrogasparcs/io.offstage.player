@@ -28,6 +28,7 @@ npm dependencies for webpack setup:
 */
 
 var path = require("path");
+const webpack = require('webpack');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 
@@ -40,12 +41,10 @@ function getEntrySources(sources) {
 }
 
 module.exports = {
+  devtool: "cheap-module-source-map", //'eval',
   entry: {
     standard: getEntrySources([
       './src/js/media-viewer.js',
-    ]),
-    admin: getEntrySources([
-      './src/js/media-viewer-admin.js',
     ])
     /*
     **** add one entry for each js file you want as a separate resource ****
@@ -68,13 +67,18 @@ module.exports = {
         exclude: /node_modules/
       },
       {
-        test: /\.sass$/,
+        test: /\.scss$/,
         loader: process.env.NODE_ENV !== 'production'?'style-loader!css-loader!sass-loader':ExtractTextPlugin.extract('css!sass')
       }
     ]
   },
   plugins: [
-    new ExtractTextPlugin('css/style.css', {
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      'process.env.STATIC_HOST': JSON.stringify("http://static.offstage.io/"),
+      'process.env.CSS_FILE': JSON.stringify("css/standard.css"),
+    }),
+    new ExtractTextPlugin('css/standard.css', {
       allChunks: true
     }),
     new HtmlWebpackPlugin({
@@ -85,7 +89,7 @@ module.exports = {
       chunks: ['standard'],
       environment: process.env.NODE_ENV !== "production"?"dev":"",
       files: {
-        "css": process.env.NODE_ENV === 'production'? [ "style.css" ] : []
+        "css": process.env.NODE_ENV === "production"? [ "standard.css" ] : []
       }
     })
   ]/* if configured access each inside project like e.g. let Strings = require('Strings');
